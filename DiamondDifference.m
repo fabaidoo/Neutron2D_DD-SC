@@ -1,0 +1,7 @@
+function DiamondDifference
+
+
+
+
+
+end
