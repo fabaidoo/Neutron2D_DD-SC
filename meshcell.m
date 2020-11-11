@@ -46,16 +46,15 @@ classdef meshcell
             
         end
         
-        function [psi_out, Qnew] = stepchar(obj, Oz, psi_in, phi0, phi1)
+        function [psi_out, Qnew] = stepchar(obj, Ox, psi_in, phi0)
             %takes incoming angular flux and previous 0th and 1st angular 
             %moments of average and calculates outgoing angular flux via
             %diamond difference method
             Delta = obj.sidelength;
-            tau = obj.sig_t * Delta ./ abs(Oz); 
+            tau = obj.sig_t * Delta ./ abs(Ox); 
             
             %total source term
-            Qnew = obj.Q0 + 0.5 * obj.sig_s0 * phi0 + 1.5 * obj.sig_s1...
-                * phi1 * Oz + 0.5 * obj.nu * obj.sig_m * phi0;% / (4 * pi);
+            Qnew = obj.Q + 0.5 * obj.sig_s0 * phi0;
             
             %compute the exiting angular flux
             psi_out = psi_in .* exp(-tau) + (Qnew ./ obj.sig_t) .* ...
@@ -63,35 +62,33 @@ classdef meshcell
         end
         
         
-         function [psi_out, Qnew] = diamdiff(obj, Oz, psi_in, phi0, phi1)
+         function [psi_out, Qnew] = diamdiff(obj, Ox, psi_in, phi0)
             %takes incoming angular flux and previous 0th and 1st angular 
             %moments of average and calculates outgoing angular flux via
             %diamond difference method
             Delta = obj.sidelength;
-            tau = obj.sig_t * Delta ./ abs(Oz); 
+            tau = obj.sig_t * Delta ./ abs(Ox); 
             
             %total source term
-            Qnew = obj.Q0 + 0.5 * obj.sig_s0 * phi0 + 1.5 * obj.sig_s1...
-                * phi1 * Oz + 0.5 * obj.nu * obj.sig_m * phi0;% / (4 * pi);
+            Qnew = obj.Q + 0.5 * obj.sig_s0 * phi0;
             
              %compute the exiting angular flux
             psi_out = psi_in .* (2 - tau) ./ (2 + tau) + ... 
                 (Qnew ./ obj.sig_t) .* (1 - (2 - tau) ./ (2 + tau)); 
          end
         
-         function [phi0_out, phi1_out] = phi_maker(obj, Oz, w, Q, psi0,...
+         function phi0_out = phi_maker(obj, Ox, w, Q, psi0,...
                 psi1)
             %Provides terms for new angular moments of phi for material. 
             %Takes angle Oz and its weight, incoming and outgoing psis
             %and modified source
             
             Delta = obj.sidelength; %material width
-            tau = obj.sig_t * Delta ./ abs(Oz); %has same shape as Oz 
+            tau = obj.sig_t * Delta ./ abs(Ox); %has same shape as Oz 
             
             phi0_out =  (Q / obj.sig_t + (psi0 - psi1) / tau ) * w;
             
-            phi1_out = (Q / obj.sig_t + (psi0 - psi1) / tau ) * Oz...
-                * w;
+           
         end
             
          
