@@ -1,22 +1,25 @@
-function [Ox, w] = angle_x(n_x, n_z)
-% x - direction discretization along with weights 
+function [Ox, Oy, w] = angle_x(n_xy, n_z)
+% xy - direction discretization along with weights 
 
-if mod(n_x, 4) ~= 0
-error('Quarter symmetry is required for the problem')
+if mod(n_xy, 4) ~= 0
+    error('Quarter symmetry is required for the problem')
+end
+if mod(n_z, 2) ~= 0
+   error('Only even discretizations in z are allowed') 
 end
 
-w0 = 2 * pi / n_x;
-w = w0 *ones(1, n_x);
+w = 2 * pi / n_xy;
+%w = w *ones(1, n_xy * n_z/2);
 
 
-phi = pi * linspace(1/n_x , (2*n_x - 1)/n_x, n_x);%azimuthal angle 
+phi = pi * linspace(1/n_xy , (2*n_xy - 1)/n_xy, n_xy);%azimuthal angle 
 % SAME AS: 1/n: 2/n: (2*n - 1)/n
 
 cos_theta = angle_z(n_z); 
 sin_theta = sqrt(1 - cos_theta.^2 ); %polar component
 
 Ox =  kron(cos(phi), sin_theta); %x-directions 
-%Oy = kron(sin(phi), sin_theta);
+Oy = kron(sin(phi), sin_theta);
 
 function [mu, w_z] = angle_z(m)
 %Angular discretization in the z-direction
