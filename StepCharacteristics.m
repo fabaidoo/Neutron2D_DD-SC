@@ -1,15 +1,15 @@
-function info = DiamondDifference(meshnum, n_xy, n_z)
+function info = StepCharacteristics(meshnum, n_xy, n_z)
 
 innerbox = .1; % size of inner box with source
 outerbox = 1; %size of outer box
 material = 'absorber'; %material in outer box 
 
 
-%CREATE DOMAIN AND MESH
+%create domain and mesh
 h = outerbox/meshnum; %meshsize
-edges = 0: h : outerbox; %ALSO: linspace(0,outerbox, meshnum + 1)
-
-cent = edges(1:meshnum) + diff(edges)/2; %coordinates of mesh elements
+edges = 0: h : outerbox; %linspace(0,outerbox, meshnum + 1)
+%coordinates of center of mesh elements
+cent = edges(1:meshnum) + diff(edges)/2; 
 
 mesh = cell(meshnum); %mesh elements go here
 for i = 1:meshnum
@@ -22,6 +22,7 @@ for i = 1:meshnum
         else
             mat = material;
         end
+        
         mesh{i,j} = meshcell(mat, center, h);     
     end 
 end
@@ -39,7 +40,7 @@ psiy_b = zeros(length(Ox), length(Oy), meshnum + 1, meshnum); %forward sweeps
 psiy_t = zeros(length(Ox), length(Oy), meshnum + 1, meshnum); %backward sweeps
 
 
-max_iter = 5e02; %break while loop after max_iter iterations 
+max_iter = 3e02; %break while loop after max_iter iterations 
 iter = 0; %iteration count
 err = 50  ; %error in calculated phis
 tol = 1e-5;
@@ -47,7 +48,6 @@ tol = 1e-5;
 phi0_ang = zeros(length(Ox), length(Oy), meshnum, meshnum);
 
 while iter <= max_iter && err > tol
-    
     for i = 1:length(Ox)
         if Ox(i) > 0
             for j = 1: length(Oy)
@@ -55,13 +55,9 @@ while iter <= max_iter && err > tol
                     for k = 1: meshnum 
                         for l = 1: meshnum 
                             obj = mesh{k,l};
-                            [psi0_ave, psix_l(i, j, k, l+1), psiy_b(i, j, k+1, l) ] =...
-                                obj.diamonddifference(Ox(i), Oy(j),  psix_l(i, j, k,l), psiy_b(i, j, k, l), phi0(k,l));
-                            
-                            phi0_ang(i,j,k,l) = psi0_ave;%phi0(k,l) + psi0_ave;
-                            
-                            %psix_l(i, j, k, l+1) = obj.diamdiff(psix_l(i, j, k,l), phi0_ang(i, j, k,l));
-                            %psiy_b(i, j, k+1, l) = obj.diamdiff(psiy_b(i, j, k, l), phi0_ang(i, j, k,l));
+                            [psi0_ave, psix_l(i, j, k, l+1), psiy_b(i, j, k+1, l)] = obj.stepcharacteristics(Ox(i), Oy(j), ...
+                                psix_l(i, j, k,l), psiy_b(i, j, k, l), phi0(k,l));
+                            phi0_ang(i,j,k,l) = psi0_ave; %phi0(k,l) + psi0_ave;
                             
                         end
                     end
@@ -71,14 +67,11 @@ while iter <= max_iter && err > tol
                     for k = 1: meshnum
                         
                         for l = 1: meshnum 
-                            m = meshnum + 1 - k; 
+                            m = meshnum + 1 - k; %!!!!!!!!!!!
                             obj = mesh{m,l};
-                            [psi0_ave, psix_l(i, j, m, l+1), psiy_t(i, j, m, l)]  = ...
-                                obj.diamonddifference(Ox(i), Oy(j),  psix_l(i, j, m,l), psiy_t(i, j, m+1, l), phi0(m,l));
-                            
-                            phi0_ang(i,j, m,l) = psi0_ave;%phi0(m,l) + psi0_ave; 
-                            %psix_l(i, j, m, l+1) = obj.diamdiff(psix_l(i, j, m,l), phi0_ang(i,j, m,l));
-                            %psiy_t(i, j, m, l) = obj.diamdiff(psiy_t(i, j, m+1, l), phi0_ang(i, j, m,l));
+                            [psi0_ave,psix_l(i, j, m, l+1), psiy_t(i, j, m, l)] = obj.stepcharacteristics...
+                                (Ox(i), Oy(j),  psix_l(i, j, m,l), psiy_t(i, j, m+1, l), phi0(m,l));
+                            phi0_ang(i,j, m,l) = psi0_ave;   %phi0(m,l) + psi0_ave;
                         end
                     end
                 end
@@ -92,12 +85,9 @@ while iter <= max_iter && err > tol
                         for l = 1: meshnum 
                             n = meshnum + 1 - l;
                             obj = mesh{k,n};
-                            [psi0_ave, psix_r(i, j, k, n), psiy_b(i, j, k+1, n)] = ...
-                                obj.diamonddifference(Ox(i), Oy(j), psix_r(i, j, k,n+1), psiy_b(i, j, k, n), phi0(k,n));
-                            
+                            [psi0_ave,psix_r(i, j, k, n),psiy_b(i, j, k+1, n)] = obj.stepcharacteristics...
+                                (Ox(i), Oy(j), psix_r(i, j, k,n+1),psiy_b(i, j, k, n), phi0(k,n));
                             phi0_ang(i,j, k, n) = psi0_ave;%phi0(k,n) + psi0_ave;
-                            %psix_r(i, j, k, n) = obj.diamdiff(psix_r(i, j, k,n+1), phi0_ang(i, j, k,n));
-                            %psiy_b(i, j, k+1, n) = obj.diamdiff(psiy_b(i, j, k, n), phi0_ang(i, j, k,n));
                         end
                     end
                 end
@@ -108,12 +98,9 @@ while iter <= max_iter && err > tol
                              m = meshnum + 1 - k;
                              n = meshnum + 1 - l;
                              obj = mesh{m,n};
-                             [psi0_ave, psix_r(i, j, m, n), psiy_t(i, j, m, n)] = ...
-                                 obj.diamonddifference(Ox(i), Oy(j), psix_r(i, j, m,n+1), psiy_t(i, j, m+1, n), phi0(m,n));
-                             
+                             [psi0_ave, psix_r(i, j, m, n), psiy_t(i, j, m, n)] = obj.stepcharacteristics...
+                                 (Ox(i), Oy(j), psix_r(i, j, m,n+1), psiy_t(i, j, m+1, n), phi0(m,n));
                              phi0_ang(i,j, m,n) = psi0_ave;% phi0(m,n) + psi0_ave;
-                             %psix_r(i, j, m, n) = obj.diamdiff(psix_r(i, j, m, n+1), phi0_ang(i, j, m,n));
-                             %psiy_t(i, j, m, n) = obj.diamdiff(psiy_t(i, j, m+1, n), phi0_ang(i, j, m,n));
                          end
                     end
                 end
@@ -121,24 +108,22 @@ while iter <= max_iter && err > tol
         
         end
     end
-    
-    phi0old = phi0;
-    phi0 = reshape(w * sum(sum(phi0_ang)), [meshnum, meshnum]); %!!!!!!
-    err = norm(phi0old - phi0, 'fro');
-    iter = iter + 1;
+   phi0old = phi0;
+   phi0 = reshape(w * sum(sum(phi0_ang)), [meshnum, meshnum]); 
+   err = norm(phi0old - phi0, 'fro');
+   iter = iter + 1;
    
   % 
    if iter == max_iter
        error('Maximum number of iterations reached before convergence. Error = %.6f', err)
    end
    
-    if err > 5e07 
-      error('Solution is blowing up. iter = %i', iter) 
-      
+   if err > 5e030
+       disp(err)
+       error('Solution is blowing up. iter = %i', iter)
    end
   %}  
 end
-
 
 
 %
@@ -156,7 +141,10 @@ surf(cent, cent, phi0)
 
 %}
 
-info = sprintf("iter = %i \nerror = %.3e ", iter, err);
+
+info = sprintf("iter = %i \nerror = %.3g ", iter, err);
+
+
 
 
 end
