@@ -36,7 +36,7 @@ classdef meshcell
                 obj.sig_s = 1.8;
             elseif strcmpi(obj.material, 'absorber') == 1
                 obj.sig_t = 10;
-                obj.sig_s = 0;%2; %!!!!!!!!!
+                obj.sig_s = 2;
             elseif strcmpi(obj.material, 'air') == 1
                 obj.sig_t = 0.01;
                 obj.sig_s = 0.006;
@@ -44,52 +44,6 @@ classdef meshcell
                 error('material type not available')
             end
             
-        end
-        
-        function  [psi_ave, psix_out, psiy_out]= stepchar(obj, Ox, Oy, psix_in, psiy_in, phi0old)
-            %takes incoming angular flux and previous 0th and 1st angular 
-            %moments of average and calculates outgoing angular flux via
-            %diamond difference method
-            h = obj.sidelength;
-            h_real = [h/abs(Ox), h/abs(Oy)];
-            [d, p] = min(h_real); %distance and index telling us if min is from x or y
-            q = 3 - p; %index of the max term above 
-            
-            %total source term
-            Qnew = obj.Q + 0.5 * obj.sig_s * phi0old;
-            
-            psi_in = [psix_in, psiy_in]; %incoming psi
-            
-            psi_0 = Qnew/ obj.sig_t + obj.p_exp(-obj.sig_t * d, 4) * (psi_in - Qnew / obj.sig_t);
-            psi_1 = Qnew / obj.sig_t + (psi_in - psi_0) / (obj.sig_t * d);
-            
-            %normalized distance
-            del = zeros(1, 2);
-            del(p) = d / h_real(p);
-            del(q) = d / h_real(q);
-            
-            psi_out = zeros(1, 2);
-            psi_out(p) = del(q) * psi_1(q) + psi_0(p);
-            psi_out(q) = del(p) * psi_1(p);
-            
-            psi_ave = Qnew / obj.sig_t + ((psi_in(p) - psi_out(p)) + del(q) * (psi_in(q) - psi_out(q)) ) / (d * obj.sig_t);
-            
-            psix_out = psi_out(1);
-            psiy_out = psi_out(2);   
-        end
-      
-        function psi0_ave = DDphi_maker(obj, Ox, Oy, psix_in,...
-                 psiy_in, phi0_old)
-            %Calculates average angular flux in cell for given x and y   
-            %directions
-            h = obj.sidelength; %material width
-            Qnew = obj.Q + 0.5 * obj.sig_s * phi0_old; %total source term
-            taux = 2 * abs(Ox) / h ;
-            tauy = 2 * abs(Oy) / h ;
-            
-            psi0_ave = (Qnew + taux * psix_in + tauy * psiy_in) / ...
-                (obj.sig_t + taux + tauy);
-           
         end
         
         function [psi0_ave, psix_out, psiy_out] = diamonddifference(obj, Ox, Oy, psix_in, psiy_in, phi0_old)
@@ -134,17 +88,12 @@ classdef meshcell
                     (psiy_in - S) * (1 - 1 /rho) * exp(-b) ; 
             end
             
-            psi0_ave = S + (psix_out - psix_in) /a + (psiy_out - psiy_in) /b; 
+            f = @(x) (exp(- x) - 1) / x;
+            
+            psi0_ave = S * (1 /rho + rho) / 2 + (psix_in - S) * (1 + f(a)) /a + (psiy_in - S) * (1 + f(b)) /b; 
+            
         end
   
-         
-         function y = p_exp(obj, x, n)
-             %taylor polynomial approximation to exp(x)
-             y = 1;
-             for i = 1:n
-                y = y + obj.n_th_term(x, i); 
-             end
-         end
     end
     
     methods(Static)
@@ -154,19 +103,7 @@ classdef meshcell
             %method
             psi_out = 2 * psi_ave - psi_in; 
          end
-         
-         function y = n_th_term(x, n)
-             %n-th term in taylor expansion of exp(x)
-             y = x.^n ./ factorial(n);
-             
-         end
-   
-         
-         
-    end
-    
-    
-    
-    
+      
+    end  
 end
 
