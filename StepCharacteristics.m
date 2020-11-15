@@ -119,6 +119,7 @@ while iter <= max_iter && err > tol
    end
    
     if err > 5e07 
+        disp(err)
       error('Solution is blowing up. iter = %i', iter) 
       
    end
